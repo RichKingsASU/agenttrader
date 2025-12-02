@@ -12,13 +12,15 @@ UI Requirements:
 4. Add a "Copy Entire Blueprint" button.
 5. Add a "Download as Markdown" button.
 6. Add a simple plan history list.
-7. Optional: A profile dropdown (Trading, TMS, AI Product, etc.)
+7. A profile dropdown that sends a "profile" field to the Edge Function (e.g., Trading, TMS, AI Product) and adjusts the tone and depth of the blueprint: choose "trading" for more quantitative and market structure detail, "tms" for more logistics and operations detail, and "ai_product" for more product and ML architecture detail.
 
 Interaction:
 - Assume user wants full autonomy.
+
 - Never ask the user clarifying questions.
-- Always send exactly what the user typed to the Edge Function.
-- Handle errors gracefully.
+- Always send exactly what the user typed to the Edge Function, along with the selected profile value.
+- Handle errors gracefuly.
+
 
 Goal:
 Turn any high-level plan into a complete blueprint with SOPs, architecture, work plans, and code, without asking questions.
