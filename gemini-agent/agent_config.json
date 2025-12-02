@@ -1,17 +1,18 @@
 {
-  "name": "high_level_plan_expander",
-  "description": "Takes a vague/high-level plan and expands it into a full technical and operational blueprint with SOPs and a detailed work plan.",
-  "model": "gemini-2.0-flash-thinking",
-  "version": "1.0.0",
-  "system_instruction": "FILE:system_instruction.txt",
-  "io": {
-    "input_type": "text",
-    "output_type": "markdown"
-  },
-  "behavior": {
-    "autonomous": true,
-    "ask_clarifying_questions": "only_if_critical",
-    "assume_best_practices": true,
-    "max_output_tokens": 120000
-  }
-}
+      "name": "high_level_plan_expander",
+      "description": "Takes a vague/high-level plan and expands it into a full technical and operational blueprint with SOPs and a detailed work plan.",
+      "model": "gemini-2.0-flash-thinking",
+      "version": "1.0.0",
+      "system_instruction": "FILE:system_instruction.txt",
+      "io": {
+        "input_type": "text",
+        "output_type": "markdown"
+      },
+      "behavior": {
+        "autonomous": true,
+        "ask_clarifying_questions": "only_if_critical",
+        "assume_best_practices": true,
+        "max_output_tokens": 180000,
+        "profile": "trading_platform"
+      }
+    }
