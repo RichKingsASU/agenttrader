@@ -1,0 +1,7 @@
+Design the first production version of the AgentTrader platform that:
+- Trades SPY and IWM options intraday
+- Uses Alpaca or Tastytrade for market data and execution
+- Stores trades, strategies, and configs in Supabase
+- Runs in Google Cloud project agenttrader-prod on Cloud Run
+- Provides a Lovable dashboard for monitoring strategies, PnL, and risk
+- Includes basic risk limits and kill-switch controls

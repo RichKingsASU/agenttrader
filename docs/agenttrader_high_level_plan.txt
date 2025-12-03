@@ -1,0 +1,9 @@
+Build a high-performance autonomous trading platform called AgentTrader that:
+
+- Trades SPY and IWM options intraday
+- Uses Tastytrade or Alpaca data + execution
+- Stores all trades and strategy configs in Supabase
+- Has a Lovable-built dashboard for strategy control and monitoring
+- Runs in Google Cloud (Cloud Run + Cloud Scheduler)
+- Supports plug-in strategies (RSI, UTBot, custom signals)
+- Includes robust risk management and daily PnL reporting
