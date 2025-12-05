@@ -1,0 +1,15 @@
+                                              Table "public.market_data_1m"
+ Column |           Type           | Collation | Nullable | Default | Storage  | Compression | Stats target | Description 
+--------+--------------------------+-----------+----------+---------+----------+-------------+--------------+-------------
+ ts     | timestamp with time zone |           | not null |         | plain    |             |              | 
+ symbol | text                     |           | not null |         | extended |             |              | 
+ open   | double precision         |           | not null |         | plain    |             |              | 
+ high   | double precision         |           | not null |         | plain    |             |              | 
+ low    | double precision         |           | not null |         | plain    |             |              | 
+ close  | double precision         |           | not null |         | plain    |             |              | 
+ volume | bigint                   |           | not null |         | plain    |             |              | 
+Indexes:
+    "market_data_1m_pkey" PRIMARY KEY, btree (ts, symbol)
+    "market_data_1m_symbol_ts_idx" btree (symbol, ts DESC)
+Access method: heap
+

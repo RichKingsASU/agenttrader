@@ -1,5 +1,5 @@
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
 from uuid import UUID
 
 
@@ -30,3 +30,26 @@ class Strategy(BaseModel):
     broker_account_id: UUID
     config: dict
     trading_session: dict
+
+
+class PaperOrderCreate(BaseModel):
+    user_id: UUID
+    broker_account_id: UUID
+    strategy_id: UUID
+    symbol: str
+    instrument_type: str
+    side: str
+    order_type: str
+    time_in_force: str = "day"
+    notional: float
+    quantity: Optional[float] = None
+    risk_allowed: bool = True
+    risk_scope: Optional[str] = None
+    risk_reason: Optional[str] = None
+    raw_order: Dict[str, Any]
+    status: str = "simulated"
+
+
+class PaperOrder(PaperOrderCreate):
+    id: UUID
+    created_at: str
