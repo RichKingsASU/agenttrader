@@ -1,10 +1,18 @@
-Strategy service PID: 55364
-Risk service PID: 55365
-INFO:     Started server process [55365]
+Strategy service PID: 55754
+Risk service PID: 55755
+INFO:     Started server process [55755]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
-INFO:     Started server process [55364]
+INFO:     Started server process [55754]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Shutting down
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [55364]
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [55365]
