@@ -1,11 +1,13 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 from uuid import UUID
+import requests
+import json
 
 from psycopg.rows import dict_row
 
-from ..db import get_conn
-from ..models import StrategyCreate, Strategy
+from ..db import get_conn, insert_paper_order
+from ..models import StrategyCreate, Strategy, PaperOrderCreate, PaperOrder
 
 router = APIRouter(prefix="/strategies", tags=["strategies"])
 
@@ -81,3 +83,36 @@ def create_strategy(user_id: UUID, payload: StrategyCreate):
         raise HTTPException(status_code=500, detail="Failed to create strategy")
 
     return _row_to_strategy(row)
+
+
+@router.post("/simulate-order", response_model=PaperOrder)
+def simulate_order(payload: PaperOrderCreate):
+    # For now, we'll assume a simple risk check that always passes.
+    # In the future, we can add a more sophisticated risk check here.
+    risk_check_payload = {
+        "user_id": str(payload.user_id),
+        "strategy_id": str(payload.strategy_id),
+        "broker_account_id": str(payload.broker_account_id),
+        "symbol": payload.symbol,
+        "notional": payload.notional,
+        "current_open_positions": 0,
+        "current_trades_today": 0,
+        "current_day_loss": 0,
+    }
+    
+    try:
+        response = requests.post("http://127.0.0.1:8002/risk-check", json=risk_check_payload)
+        response.raise_for_status()
+        risk_result = response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect to risk service: {e}")
+
+
+    if not risk_result.get("allowed"):
+        raise HTTPException(status_code=400, detail=f"Risk check failed: {risk_result.get('reason')}")
+
+    paper_order = insert_paper_order(payload)
+    if not paper_order:
+        raise HTTPException(status_code=500, detail="Failed to create paper order")
+
+    return paper_order

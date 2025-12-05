@@ -1,0 +1,6 @@
+{
+  "commands": [
+    "cd ~/agenttrader && supabase db push",
+    "cd ~/agenttrader && pkill -f 'uvicorn' || true"
+  ]
+}

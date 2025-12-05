@@ -1,0 +1,17 @@
+{
+  "ran_at": "2025-12-05T00:20:45.822150",
+  "results": [
+    {
+      "command": "cd ~/agenttrader && supabase db push",
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "failed to parse config: decoding failed due to the following error(s):\n                                                                      \n'db' has invalid keys: schema                                         \n'' has invalid keys: project                                          \nTry rerunning the command with --debug to troubleshoot the error.\n"
+    },
+    {
+      "command": "cd ~/agenttrader && pkill -f 'uvicorn' || true",
+      "returncode": -15,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}
