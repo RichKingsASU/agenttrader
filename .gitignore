@@ -11,3 +11,4 @@ build/
 .DS_Store
 .genkit/
 \ndb_url.txt\nlogs/
+\n# Frontend\nfrontend/agenttrader-ui/node_modules\nfrontend/agenttrader-ui/.next
