@@ -12,3 +12,4 @@ build/
 .genkit/
 \ndb_url.txt\nlogs/
 \n# Frontend\nfrontend/agenttrader-ui/node_modules\nfrontend/agenttrader-ui/.next
+\n# Strategy\nbackend/strategy/__pycache__
