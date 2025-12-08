@@ -5,41 +5,47 @@
 
 # --- Configuration ---
 PROJECT_ID=$(gcloud config get-value project)
-SERVICE_NAME="agenttrader-strategy-engine"
+JOB_NAME="strategy-engine-job"
+SCHEDULER_NAME="strategy-engine-scheduler"
 REGION="us-central1"
-IMAGE_URI="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+IMAGE_URI="gcr.io/${PROJECT_ID}/${JOB_NAME}"
 SERVICE_ACCOUNT="my-run-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 
-# --- Add IAM policy binding ---
-echo "Adding IAM policy binding..."
-gcloud run jobs add-iam-policy-binding "${SERVICE_NAME}" \
-  --region="${REGION}" \
-  --member="serviceAccount:${SERVICE_ACCOUNT}" \
-  --role="roles/run.invoker"
+# --- IAM policy bindings (idempotent) ---
+echo "Ensuring IAM policy bindings..."
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:${SERVICE_ACCOUNT}" --role="roles/run.invoker" --condition=None > /dev/null
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:${SERVICE_ACCOUNT}" --role="roles/secretmanager.secretAccessor" --condition=None > /dev/null
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:${SERVICE_ACCOUNT}" --role="roles/run.admin" --condition=None > /dev/null
+
 
 # --- Build and Push Container Image ---
 echo "Building and pushing container image..."
-gcloud builds submit --config cloudbuild_strategy_engine.yaml .
+gcloud builds submit --config cloudbuild_strategy_engine.yaml . --substitutions=_JOB_NAME=$JOB_NAME
 
 # --- Deploy to Cloud Run as a Job ---
 echo "Deploying to Cloud Run as a Job..."
-# Note: This command assumes you have a secret named 'DATABASE_URL' in Secret Manager.
-gcloud run jobs deploy "${SERVICE_NAME}" \
+gcloud run jobs deploy "${JOB_NAME}" \
   --image "${IMAGE_URI}" \
   --region "${REGION}" \
   --service-account "${SERVICE_ACCOUNT}" \
   --set-secrets="DATABASE_URL=DATABASE_URL:latest" \
-  --update-env-vars="STRATEGY_NAME=naive_flow_trend,STRATEGY_SYMBOLS=SPY IWM QQQ,STRATEGY_BAR_LOOKBACK_MINUTES=30,STRATEGY_FLOW_LOOKBACK_MINUTES=5"
+  --set-env-vars="STRATEGY_NAME=naive_flow_trend,STRATEGY_SYMBOLS=SPY,IWM,QQQ,STRATEGY_BAR_LOOKBACK_MINUTES=15,STRATEGY_FLOW_LOOKBACK_MINUTES=15"
 
-# --- Delete Existing Cloud Scheduler Job ---
-echo "Deleting existing Cloud Scheduler Job..."
-gcloud scheduler jobs delete "${SERVICE_NAME}-scheduler" --location="${REGION}" --quiet
+# --- Delete Existing Cloud Scheduler Job (if exists) ---
+echo "Deleting existing Cloud Scheduler Job to ensure clean state..."
+gcloud scheduler jobs delete "${SCHEDULER_NAME}" --location="${REGION}" --quiet
 
 # --- Create Cloud Scheduler Job ---
 echo "Creating Cloud Scheduler Job..."
-gcloud scheduler jobs create http "${SERVICE_NAME}-scheduler" \
+gcloud scheduler jobs create http "${SCHEDULER_NAME}" \
   --schedule "*/5 13-20 * * 1-5" \
   --location "${REGION}" \
-  --uri "https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/${SERVICE_NAME}:run" \
+  --uri "https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT_ID}/jobs/${JOB_NAME}:run" \
   --http-method "POST" \
   --oidc-service-account-email "${SERVICE_ACCOUNT}"
+
+# --- Manually trigger the Cloud Run job ---
+echo "Manually triggering the Cloud Run job..."
+gcloud run jobs execute "${JOB_NAME}" --region="${REGION}"
+
+echo "Deployment script finished."
