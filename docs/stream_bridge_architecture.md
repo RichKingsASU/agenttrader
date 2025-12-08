@@ -2,9 +2,7 @@
 
 ## Implementation Status (2025-12-08)
 
-The implementation of the Stream Bridge has progressed as follows:
-
-- **SupabaseWriter**: The `SupabaseWriter` methods have been fully implemented with `asyncpg` for all new tables (`options_flow`, `news_events`, `broker_positions`, `broker_balances`).
-- **Smoke Test**: `test_writer_smoke.py` has been created and verified.
-- **News Stream Client**: The `NewsStreamClient` scaffold has been implemented with an environment-driven URL and API key.
-- **Next Steps**: The `OptionsFlowClient` and `AccountUpdatesClient` are the next components to be implemented.
+- **Client Implementation**: The `OptionsFlowClient` and `AccountUpdatesClient` have been implemented with safe-idle behavior.
+- **UI Widgets**: New widgets for `news_events`, `options_flow`, and `broker_positions` have been added to the frontend.
+- **Deployment Scaffolding**: `Dockerfile.stream_bridge`, `cloudbuild_stream_bridge.yaml`, and `scripts/setup_cloud_run_stream_bridge.sh` have been created to provide a deployment path for the Stream Bridge service.
+- **Next Steps**: The primary remaining task is to provide the actual Developer Console URLs and API keys as environment variables to activate the stream clients.
