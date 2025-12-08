@@ -1,1 +1,11 @@
-.genkit/
+.venv/
+__pycache__/
+*.pyc
+logs/
+*.log
+.env
+.env.*
+node_modules/
+dist/
+build/
+.DS_Store
