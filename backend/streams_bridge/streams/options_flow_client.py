@@ -1,8 +1,11 @@
 import asyncio
 import logging
 import websockets
+import json
+from datetime import datetime, timezone
 from .config import Config
 from .supabase_writer import SupabaseWriter
+from ..mapping import map_devconsole_options_flow
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +31,11 @@ class OptionsFlowClient:
                     logger.info("Connected to options flow stream.")
                     while True:
                         message = await websocket.recv()
-                        # TODO: Map the actual payload format to the normalized dict.
-                        # This is a placeholder for a single event.
-                        event = {
-                            "event_ts": "...",
-                            "symbol": "...",
-                            "option_symbol": "...",
-                            "side": "...",
-                            "size": 0,
-                            "raw": message,
-                        }
-                        await self.writer.insert_options_flow([event])
+                        payload = json.loads(message)
+                        # Handle both single and array payloads
+                        events_payload = payload if isinstance(payload, list) else [payload]
+                        events = [map_devconsole_options_flow(ep) for ep in events_payload]
+                        await self.writer.insert_options_flow(events)
             except Exception as e:
                 logger.exception(f"OptionsFlowClient error: {e}")
                 await asyncio.sleep(5)

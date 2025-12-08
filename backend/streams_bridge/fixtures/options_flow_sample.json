@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-08T12:01:00Z",
+  "underlying_symbol": "SPY",
+  "option_contract_symbol": "SPY251219C00400000",
+  "side": "buy",
+  "size": 10,
+  "notional": 4000.00,
+  "strike_price": 400.00,
+  "expiration_date": "2025-12-19",
+  "option_type": "call",
+  "trade_price": 4.00,
+  "bid_price": 3.90,
+  "ask_price": 4.10,
+  "exchange": "CBOE",
+  "raw_payload": {"order_id": "ABCDE"}
+}

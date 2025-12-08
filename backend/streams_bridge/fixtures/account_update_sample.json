@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-12-08T12:02:00Z",
+  "account_id": "TD12345678",
+  "broker": "td_ameritrade",
+  "positions": [
+    {
+      "instrument_id": "SPY",
+      "quantity": 5,
+      "average_cost": 390.00,
+      "market_value": 395.00
+    },
+    {
+      "instrument_id": "IWM",
+      "quantity": 10,
+      "average_cost": 190.00,
+      "market_value": 192.00
+    }
+  ],
+  "balances": {
+    "cash_balance": 10000.00,
+    "buying_power": 20000.00,
+    "maintenance_margin": 5000.00,
+    "total_equity": 15000.00
+  },
+  "raw_payload": {"update_type": "full_snapshot"}
+}

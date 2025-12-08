@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-12-08T12:00:00Z",
+  "source": "benzinga",
+  "symbol": "SPY",
+  "headline": "Sample News: SPY Hits New Highs",
+  "body": "This is a sample news body for testing purposes.",
+  "url": "https://example.com/news/spy-highs",
+  "category": "market",
+  "sentiment": "positive",
+  "importance": 3,
+  "raw_payload": {"original_id": "12345"}
+}

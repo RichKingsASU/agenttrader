@@ -1,8 +1,11 @@
 import asyncio
 import logging
 import websockets
+import json
+from datetime import datetime, timezone
 from .config import Config
 from .supabase_writer import SupabaseWriter
+from ..mapping import map_devconsole_account_update
 
 logger = logging.getLogger(__name__)
 
@@ -28,29 +31,30 @@ class AccountUpdatesClient:
                     logger.info("Connected to account updates stream.")
                     while True:
                         message = await websocket.recv()
-                        # TODO: Map the actual TD Ameritrade payload to the normalized dicts.
-                        # This is a placeholder for a single event.
-                        positions = [
-                            # {
-                            #     "broker": "td_ameritrade",
-                            #     "external_account_id": "...",
-                            #     "symbol": "...",
-                            #     "qty": 0,
-                            #     "updated_at": "...",
-                            #     "raw": message
-                            # }
-                        ]
-                        balances = [
-                            # {
-                            #     "broker": "td_ameritrade",
-                            #     "external_account_id": "...",
-                            #     "cash": 0,
-                            #     "updated_at": "...",
-                            #     "raw": message
-                            # }
-                        ]
+                        payload = json.loads(message)
+                        positions, balances, account_meta = map_devconsole_account_update(payload)
+
+                        # Ensure broker_accounts row exists and get its ID
+                        async with self.writer.pool.acquire() as conn:
+                            broker_account_id = await conn.fetchval(
+                                """
+                                INSERT INTO public.broker_accounts (broker, external_account_id, label)
+                                VALUES ($1, $2, $3)
+                                ON CONFLICT (broker, external_account_id) DO UPDATE SET label = EXCLUDED.label
+                                RETURNING id
+                                """,
+                                account_meta['broker'], account_meta['external_account_id'], f"{account_meta['broker']}-{account_meta['external_account_id']}"
+                            )
+
+                        # Add broker_account_id to positions and balances
+                        for p in positions:
+                            p['broker_account_id'] = broker_account_id
+                        for b in balances:
+                            b['broker_account_id'] = broker_account_id
+
                         await self.writer.upsert_positions(positions)
                         await self.writer.upsert_balances(balances)
+
             except Exception as e:
                 logger.exception(f"AccountUpdatesClient error: {e}")
                 await asyncio.sleep(5)
