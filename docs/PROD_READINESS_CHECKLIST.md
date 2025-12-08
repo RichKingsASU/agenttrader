@@ -1,14 +1,9 @@
-## Phase 4 – Strategy Engine
 
-- [x] Schema + migrations for strategy + risk.
-- [x] Strategy engine service implemented.
-- [x] Risk checks integrated before orders.
-- [x] Strategy UI dashboard added.
-- [x] Deployment scaffolding (Docker + Cloud Run + Scheduler) created.
 
-## Future Phases
+## Phase 5 – Strategy Engine Deployment & Scheduling
 
-- [ ] Implement Tastytrade adapter for live trading.
-- [ ] Develop and integrate more advanced strategies.
-- [ ] Add more sophisticated risk management and position sizing logic.
-- [ ] Enhance UI with more detailed strategy performance metrics.
+- [x] Strategy limits seeded.
+- [x] Local dry-run and execute tests performed.
+- [x] Cloud Run image build & deploy scaffold in place.
+- [x] Cloud Scheduler template in place.
+- [ ] **IAM/Org Policy Block:** Cloud Run and Scheduler deployment was blocked by IAM permissions. The user must grant the `Secret Manager Secret Accessor` and `Service Account User` roles to the `my-run-sa` service account and rerun the deployment script.

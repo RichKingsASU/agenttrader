@@ -1,30 +1,26 @@
-# AgentTrader - Strategy Engine Architecture
 
-## Strategy Engine – Phase 4 (2025-12-08)
 
-### Role of Strategy Engine
+## Phase 5 – Deployment & Limits
 
-The Strategy Engine is a core component of the AgentTrader system responsible for making autonomous trading decisions. It operates by analyzing market data and other signals, applying a defined trading strategy, and generating trade signals. These signals are then passed to the execution component, which places orders with the broker.
+### Strategy Limits Configuration
 
-### Inputs
+The `naive_flow_trend` strategy is configured with the following default limits, seeded from `supabase/sql/seed_strategy_limits.sql`:
 
-The Strategy Engine consumes the following data inputs:
+- **Max Daily Trades:** 5
+- **Max Position Size:** 1
+- **Max Notional Per Trade:** 10000
+- **Max Notional Per Day:** 30000
+- **Max Open Positions:** 1
+- **Cool Down Minutes:** 5
 
-- **Market Data:** 1-minute bar data (`public.market_data_1m`) for SPY, IWM, and QQQ.
-- **Options Flow:** Real-time options flow data (`public.options_flow`) to gauge market sentiment.
-- **Broker Positions:** Account position and balance data (`public.broker_positions`, `public.broker_balances`) for position management and risk control.
+### Cloud Deployment
 
-### Outputs
+The Strategy Engine is deployed as a Google Cloud Run Job, triggered by a Cloud Scheduler job.
 
-The Strategy Engine produces the following outputs:
+- **Cloud Run Job:** The job is defined in `cloudbuild_strategy_engine.yaml` and deployed using the script in `scripts/setup_cloud_run_strategy_engine.sh`.
+- **Cloud Scheduler:** The scheduler is configured to run the job every 5 minutes during market hours. The configuration is in `scripts/setup_cloud_run_strategy_engine.sh`.
 
-- **Paper Trades:** Trade orders are sent to the Alpaca paper trading environment and recorded in the `public.paper_trades` table.
-- **Strategy Logs:** Detailed logs of every decision made by the strategy, including the reason and the data that led to the decision. These logs are stored in the `public.strategy_logs` table.
+### Local vs. Cloud Execution
 
-### Initial Scope
-
-The initial version of the Strategy Engine will implement a simple "Naive Flow + Trend" strategy. This strategy is designed to be a baseline for future, more complex strategies. The key characteristics of the initial scope are:
-
-- **Paper Trading Only:** All trades will be executed in the Alpaca paper trading environment. No real capital will be at risk.
-- **Risk-Limited:** The strategy will be subject to basic risk controls, including limits on the number of daily trades, position size, and notional value per trade.
-- **Naive Flow + Trend Strategy:** The strategy will make decisions based on a combination of simple trend-following and options flow analysis.
+- **Local:** The strategy can be run locally for testing and development. The `driver.py` script can be run in either dry-run or execute mode.
+- **Cloud:** In the cloud, the strategy is run in execute mode by default.
