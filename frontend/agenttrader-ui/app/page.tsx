@@ -3,6 +3,8 @@ import PaperTradesWidget from './components/PaperTradesWidget';
 import NewsEventsWidget from './components/NewsEventsWidget';
 import OptionsFlowWidget from './components/OptionsFlowWidget';
 import BrokerPositionsWidget from './components/BrokerPositionsWidget';
+import StrategyLogsWidget from './components/StrategyLogsWidget';
+import StrategyStateWidget from './components/StrategyStateWidget';
 
 export default function Home() {
   return (
@@ -12,6 +14,8 @@ export default function Home() {
       </div>
 
       <div className="w-full mt-12">
+        <StrategyStateWidget />
+        <StrategyLogsWidget />
         <MarketDataWidget />
         <PaperTradesWidget />
         <NewsEventsWidget />
