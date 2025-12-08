@@ -1,0 +1,21 @@
+{
+  // Where the server looks for SQL files
+  "files": [
+    "supabase/**/*.sql",
+    "backend/**/*.sql",
+    "**/*.sql"
+  ],
+
+  // Database connection – USE YOUR SUPABASE DB URL HERE
+  "db": {
+    "connection": {
+      "connectionString": "postgresql://postgres:pIPWNq6LAz2hOBaQ@db.nugswladoficdyvygstg.supabase.co:5432/postgres?sslmode=require"
+    },
+    "defaultSchema": "public"
+  },
+
+  // Optional: enable some stricter checks
+  "lint": {
+    "enabled": true
+  }
+}
