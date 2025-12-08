@@ -13,3 +13,4 @@ build/
 \ndb_url.txt\nlogs/
 \n# Frontend\nfrontend/agenttrader-ui/node_modules\nfrontend/agenttrader-ui/.next
 \n# Strategy\nbackend/strategy/__pycache__
+\n# Streams Bridge\nbackend/streams_bridge/__pycache__
