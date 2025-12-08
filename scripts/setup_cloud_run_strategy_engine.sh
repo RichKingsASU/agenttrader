@@ -1,40 +1,41 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
-# This script provides commands to build and deploy the Strategy Engine Cloud Run Job.
+# This script provides commented-out commands to build and deploy the
+# AgentTrader Strategy Engine to Google Cloud Run.
 
 # --- Configuration ---
-PROJECT_ID=$(gcloud config get-value project)
-REGION="us-central1"
-IMAGE_TAG="gcr.io/${PROJECT_ID}/agenttrader-strategy-engine"
+# GCP Project ID
+# PROJECT_ID="your-gcp-project-id"
 
-# --- IAM Roles Required ---
-# The user running these commands needs the following roles:
-# - Cloud Build Editor (roles/cloudbuild.builds.editor)
-# - Cloud Run Admin (roles/run.admin)
-# - IAM Service Account User (roles/iam.serviceAccountUser)
+# Cloud Run service name
+# SERVICE_NAME="agenttrader-strategy-engine"
 
-# --- Build the container image ---
-echo "Building and pushing the container image: ${IMAGE_TAG}"
+# GCP region
+# REGION="us-central1"
+
+# Container image URI
+# IMAGE_URI="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+
+# --- Build and Push Container Image ---
 # gcloud builds submit --config cloudbuild_strategy_engine.yaml .
 
-# --- Deploy the Cloud Run Job ---
-echo "Deploying the Cloud Run Job: agenttrader-strategy-engine"
-# gcloud run jobs create agenttrader-strategy-engine \
-#   --image "${IMAGE_TAG}" \
+# --- Deploy to Cloud Run ---
+# Make sure to replace the environment variable values with your actual secrets.
+# gcloud run deploy "${SERVICE_NAME}" \
+#   --image "${IMAGE_URI}" \
 #   --region "${REGION}" \
-#   --max-retries=3 \
-#   --tasks=1 \
-#   --set-env-vars="DATABASE_URL=${DATABASE_URL}" \
+#   --platform "managed" \
+#   --no-allow-unauthenticated \
+#   --set-env-vars="DATABASE_URL=your-supabase-database-url" \
 #   --set-env-vars="STRATEGY_NAME=naive_flow_trend" \
-#   --set-env-vars="STRATEGY_SYMBOLS=SPY,IWM"
+#   --set-env-vars="STRATEGY_SYMBOLS=SPY,IWM,QQQ" \
+#   --set-env-vars="STRATEGY_BAR_LOOKBACK_MINUTES=30" \
+#   --set-env-vars="STRATEGY_FLOW_LOOKBACK_MINUTES=5"
 
-# --- Create a Cloud Scheduler Job ---
-echo "Creating the Cloud Scheduler Job: agenttrader-strategy-engine-scheduler"
-# This would trigger the job every minute during market hours.
-# gcloud scheduler jobs create http agenttrader-strategy-engine-scheduler \
-#   --schedule="* 9-16 * * 1-5" \
-#   --time-zone="America/New_York" \
-#   --uri="https://<YOUR_CLOUD_RUN_SERVICE_OR_API_ENDPOINT>" \
-#   --http-method=POST \
-#   --oauth-service-account-email="<YOUR_SERVICE_ACCOUNT_EMAIL>"
+# --- Create Cloud Scheduler Job ---
+# This example creates a job that runs every 15 minutes.
+# gcloud scheduler jobs create http "${SERVICE_NAME}-scheduler" \
+#   --schedule "*/15 * * * *" \
+#   --uri "https://$(gcloud run services describe "${SERVICE_NAME}" --region "${REGION}" --format 'value(status.url)' | cut -d'/' -f3)" \
+#   --http-method "POST" \
+#   --oidc-service-account-email "$(gcloud projects describe "${PROJECT_ID}" --format 'value(projectNumber)')-compute@developer.gserviceaccount.com"

@@ -1,63 +1,111 @@
-import psycopg2
-from datetime import date, datetime, timezone, timedelta
-from uuid import UUID
+import asyncpg
+import json
+from datetime import date, datetime
+from uuid import UUID, uuid4
 
-def get_or_create_strategy_definition(conn, name: str) -> UUID:
-    with conn.cursor() as cur:
-        cur.execute("SELECT id FROM public.strategy_definitions WHERE name = %s", (name,))
-        result = cur.fetchone()
-        if result:
-            return result[0]
-        else:
-            cur.execute("INSERT INTO public.strategy_definitions (name) VALUES (%s) RETURNING id", (name,))
-            return cur.fetchone()[0]
+from .config import config
 
-def get_or_create_today_state(conn, strategy_id: UUID, today: date):
-    with conn.cursor() as cur:
-        cur.execute("SELECT * FROM public.strategy_state WHERE strategy_id = %s AND trading_date = %s", (strategy_id, today))
-        if not cur.fetchone():
-            cur.execute("INSERT INTO public.strategy_state (strategy_id, trading_date) VALUES (%s, %s)", (strategy_id, today))
+async def get_db_connection():
+    return await asyncpg.connect(config.DATABASE_URL, statement_cache_size=0)
 
-def load_limits(conn, strategy_id: UUID):
-    with conn.cursor() as cur:
-        cur.execute("SELECT max_daily_trades, max_position_size, max_notional_per_trade, max_notional_per_day, max_open_positions, cool_down_minutes FROM public.strategy_limits WHERE strategy_id = %s", (strategy_id,))
-        return cur.fetchone()
+async def get_or_create_strategy_definition(name: str) -> UUID:
+    conn = await get_db_connection()
+    try:
+        strategy_id = await conn.fetchval("SELECT id FROM public.strategy_definitions WHERE name = $1", name)
+        if not strategy_id:
+            strategy_id = await conn.fetchval(
+                "INSERT INTO public.strategy_definitions (name) VALUES ($1) RETURNING id", name
+            )
+        return strategy_id
+    finally:
+        await conn.close()
 
-def can_place_trade(conn, strategy_id: UUID, today: date, proposed_notional: float) -> bool:
-    limits = load_limits(conn, strategy_id)
-    if not limits:
-        return True # No limits set
-
-    with conn.cursor() as cur:
-        cur.execute("SELECT trades_placed, notional_traded, last_trade_at FROM public.strategy_state WHERE strategy_id = %s AND trading_date = %s", (strategy_id, today))
-        state = cur.fetchone()
+async def get_or_create_today_state(strategy_id: UUID, trading_date: date) -> asyncpg.Record:
+    conn = await get_db_connection()
+    try:
+        state = await conn.fetchrow(
+            "SELECT * FROM public.strategy_state WHERE strategy_id = $1 AND trading_date = $2",
+            strategy_id,
+            trading_date,
+        )
         if not state:
-            return True
+            state = await conn.fetchrow(
+                """
+                INSERT INTO public.strategy_state (strategy_id, trading_date)
+                VALUES ($1, $2)
+                RETURNING *
+                """,
+                strategy_id,
+                trading_date,
+            )
+        return state
+    finally:
+        await conn.close()
 
-        trades_placed, notional_traded, last_trade_at = state
-        max_daily_trades, _, max_notional_per_trade, max_notional_per_day, _, cool_down_minutes = limits
+async def load_limits(strategy_id: UUID) -> asyncpg.Record:
+    conn = await get_db_connection()
+    try:
+        return await conn.fetchrow("SELECT * FROM public.strategy_limits WHERE strategy_id = $1", strategy_id)
+    finally:
+        await conn.close()
 
-        if max_daily_trades and trades_placed >= max_daily_trades:
-            return False
-        if max_notional_per_day and (notional_traded + proposed_notional) > max_notional_per_day:
-            return False
-        if max_notional_per_trade and proposed_notional > max_notional_per_trade:
-            return False
-        if last_trade_at and cool_down_minutes and (datetime.now(timezone.utc) - last_trade_at) < timedelta(minutes=cool_down_minutes):
-            return False
+async def can_place_trade(strategy_id: UUID, trading_date: date, proposed_notional: float) -> bool:
+    state = await get_or_create_today_state(strategy_id, trading_date)
+    limits = await load_limits(strategy_id)
+
+    if not limits:
+        return True # No limits set, so allow trade
+
+    if state['trades_placed'] >= limits.get('max_daily_trades', float('inf')):
+        return False
+    if state['notional_traded'] + proposed_notional > limits.get('max_notional_per_day', float('inf')):
+        return False
 
     return True
 
-def record_trade(conn, strategy_id: UUID, today: date, notional: float):
-    with conn.cursor() as cur:
-        cur.execute(
-            "UPDATE public.strategy_state SET trades_placed = trades_placed + 1, notional_traded = notional_traded + %s, last_trade_at = %s, updated_at = %s WHERE strategy_id = %s AND trading_date = %s",
-            (notional, datetime.now(timezone.utc), datetime.now(timezone.utc), strategy_id, today)
+async def record_trade(strategy_id: UUID, trading_date: date, notional: float):
+    conn = await get_db_connection()
+    try:
+        await conn.execute(
+            """
+            UPDATE public.strategy_state
+            SET trades_placed = trades_placed + 1,
+                notional_traded = notional_traded + $1,
+                last_trade_at = NOW()
+            WHERE strategy_id = $2 AND trading_date = $3
+            """,
+            notional,
+            strategy_id,
+            trading_date,
         )
+    finally:
+        await conn.close()
 
-def log_decision(conn, strategy_id: UUID, symbol: str, decision: str, reason: str, signal_payload: dict, did_trade: bool, paper_trade_id: UUID = None):
-    with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO public.strategy_logs (strategy_id, symbol, decision, reason, signal_payload, did_trade, paper_trade_id) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-            (strategy_id, symbol, decision, reason, json.dumps(signal_payload), did_trade, paper_trade_id)
+import json
+
+async def log_decision(
+    strategy_id: UUID,
+    symbol: str,
+    decision: str,
+    reason: str,
+    signal_payload: dict,
+    did_trade: bool,
+    paper_trade_id: UUID = None,
+):
+    conn = await get_db_connection()
+    try:
+        await conn.execute(
+            """
+            INSERT INTO public.strategy_logs (strategy_id, symbol, decision, reason, signal_payload, did_trade, paper_trade_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            """,
+            strategy_id,
+            symbol,
+            decision,
+            reason,
+            json.dumps(signal_payload),
+            did_trade,
+            paper_trade_id,
         )
+    finally:
+        await conn.close()

@@ -1,60 +1,97 @@
-import os
-import sys
+import asyncio
 import subprocess
-import psycopg2
-from datetime import date, datetime, timezone
-from decimal import Decimal
-from .config import load_config
-from . import risk
-from .strategies import naive_flow_trend
+from datetime import date
+import argparse
 
-def get_recent_bars(conn, symbol, lookback_minutes):
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT symbol, ts, open, high, low, close, volume FROM public.market_data_1m WHERE symbol = %s AND ts > %s ORDER BY ts DESC",
-            (symbol, datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes))
-        )
-        return [Bar(*row) for row in cur.fetchall()]
+from .config import config
+from .models import fetch_recent_bars, fetch_recent_options_flow
+from .risk import (
+    get_or_create_strategy_definition,
+    get_or_create_today_state,
+    can_place_trade,
+    record_trade,
+    log_decision,
+)
+from .strategies.naive_flow_trend import make_decision
 
-def get_recent_flow(conn, symbol, lookback_minutes):
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT symbol, option_symbol, side, size, notional, event_ts FROM public.options_flow WHERE symbol = %s AND event_ts > %s ORDER BY event_ts DESC",
-            (symbol, datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes))
-        )
-        return [FlowEvent(*row) for row in cur.fetchall()]
-
-def main(execute: bool):
-    cfg = load_config()
+async def run_strategy(execute: bool):
+    """
+    Main function to run the strategy engine.
+    """
+    strategy_id = await get_or_create_strategy_definition(config.STRATEGY_NAME)
     today = date.today()
+    
+    print(f"Running strategy '{config.STRATEGY_NAME}' for {today}...")
 
-    with psycopg2.connect(cfg.database_url) as conn:
-        strategy_id = risk.get_or_create_strategy_definition(conn, cfg.strategy_name)
-        risk.get_or_create_today_state(conn, strategy_id, today)
+    for symbol in config.STRATEGY_SYMBOLS:
+        print(f"Processing symbol: {symbol}")
 
-        for symbol in cfg.strategy_symbols:
-            bars = get_recent_bars(conn, symbol, cfg.strategy_bar_lookback_minutes)
-            flow = get_recent_flow(conn, symbol, cfg.strategy_flow_lookback_minutes)
-            decision = naive_flow_trend.evaluate(bars, flow)
+        bars = await fetch_recent_bars(symbol, config.STRATEGY_BAR_LOOKBACK_MINUTES)
+        flow_events = await fetch_recent_options_flow(symbol, config.STRATEGY_FLOW_LOOKBACK_MINUTES)
 
-            if decision['action'] != 'flat' and execute:
-                proposed_notional = float(bars[0].close) * decision['size']
-                if risk.can_place_trade(conn, strategy_id, today, proposed_notional):
-                    try:
-                        subprocess.run(
-                            ["python", "backend/streams/manual_paper_trade.py", symbol, decision['action'], str(decision['size'])],
-                            check=True, capture_output=True, text=True
-                        )
-                        # TODO: This is a simplification. The `manual_paper_trade.py` script would need to be modified to return the trade ID.
-                        risk.record_trade(conn, strategy_id, today, proposed_notional)
-                        risk.log_decision(conn, strategy_id, symbol, decision['action'], decision['reason'], decision['signal_payload'], True)
-                    except subprocess.CalledProcessError as e:
-                        risk.log_decision(conn, strategy_id, symbol, decision['action'], f"Failed to place trade: {e.stderr}", decision['signal_payload'], False)
-                else:
-                    risk.log_decision(conn, strategy_id, symbol, decision['action'], "Risk limits exceeded", decision['signal_payload'], False)
-            else:
-                risk.log_decision(conn, strategy_id, symbol, decision['action'], decision['reason'], decision['signal_payload'], False)
+        decision = make_decision(bars, flow_events)
+        action = decision.get("action")
+
+        if action == "flat":
+            await log_decision(strategy_id, symbol, "flat", decision["reason"], decision["signal_payload"], False)
+            print(f"  Decision: flat. Reason: {decision['reason']}")
+            continue
+
+        # Calculate notional
+        last_price = bars[0].close if bars else 0
+        notional = last_price * decision.get("size", 0)
+
+        # Risk check
+        if not await can_place_trade(strategy_id, today, notional):
+            reason = "Risk limit exceeded."
+            await log_decision(strategy_id, symbol, action, reason, decision["signal_payload"], False)
+            print(f"  Decision: {action}, but trade blocked. Reason: {reason}")
+            continue
+            
+        print(f"  Decision: {action}. Reason: {decision['reason']}")
+
+        if execute:
+            print(f"  Executing {action} order for 1 {symbol}...")
+            # Call the existing paper trade script
+            process = subprocess.run(
+                [
+                    "python",
+                    "backend/streams/manual_paper_trade.py",
+                    symbol,
+                    action,
+                    str(decision.get("size", 1)),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            print(f"   manual_paper_trade.py stdout: {process.stdout}")
+            print(f"   manual_paper_trade.py stderr: {process.stderr}")
+
+            # Record the trade
+            await record_trade(strategy_id, today, notional)
+            await log_decision(
+                strategy_id,
+                symbol,
+                action,
+                decision["reason"],
+                decision["signal_payload"],
+                True,
+            )
+        else:
+            print("  Dry run mode, no trade executed.")
+            await log_decision(
+                strategy_id,
+                symbol,
+                action,
+                "Dry run mode.",
+                decision["signal_payload"],
+                False,
+            )
+
 
 if __name__ == "__main__":
-    execute = "--execute" in sys.argv
-    main(execute)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--execute", action="store_true", help="Actually place paper trades.")
+    args = parser.parse_args()
+
+    asyncio.run(run_strategy(args.execute))

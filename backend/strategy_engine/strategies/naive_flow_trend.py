@@ -1,43 +1,42 @@
+from typing import List, Dict
 from ..models import Bar, FlowEvent
-from decimal import Decimal
 
-def evaluate(bars: list[Bar], flow_events: list[FlowEvent]) -> dict:
+def make_decision(bars: List[Bar], flow_events: List[FlowEvent]) -> Dict:
     """
-    A naive strategy that combines a simple moving average trend with options flow sentiment.
+    Makes a trading decision based on recent bars and options flow.
     """
-    if not bars or len(bars) < 2:
-        return {"action": "flat", "reason": "Not enough bar data"}
-
-    # Simple Trend
-    last_close = bars[0].close
-    avg_close = sum(b.close for b in bars) / len(bars)
-    trend_up = last_close > avg_close
-
-    # Flow Bias
-    call_buy_size = sum(f.size for f in flow_events if f.side == 'buy' and f.option_symbol.endswith('C'))
-    put_buy_size = sum(f.size for f in flow_events if f.side == 'buy' and f.option_symbol.endswith('P'))
-    flow_bias_positive = call_buy_size > put_buy_size
-
-    signal_payload = {
-        "last_close": float(last_close),
-        "avg_close": float(avg_close),
-        "trend_up": trend_up,
-        "call_buy_size": call_buy_size,
-        "put_buy_size": put_buy_size,
-        "flow_bias_positive": flow_bias_positive
-    }
-
-    if trend_up and flow_bias_positive:
-        return {
-            "action": "buy",
-            "symbol": bars[0].symbol,
-            "size": 1,
-            "reason": "Price is above SMA and call flow is dominant.",
-            "signal_payload": signal_payload
-        }
-    else:
+    if not bars:
         return {
             "action": "flat",
-            "reason": "No clear buy signal.",
-            "signal_payload": signal_payload
+            "reason": "No recent bar data.",
+            "signal_payload": {}
         }
+
+    # Calculate simple moving average
+    closes = [bar.close for bar in bars]
+    sma = sum(closes) / len(closes)
+    last_close = closes[0]
+
+    # Calculate flow imbalance
+    call_value = sum(event.total_value for event in flow_events if event.total_value > 0)
+    put_value = sum(event.total_value for event in flow_events if event.total_value < 0)
+    flow_imbalance = call_value + put_value
+
+    # Decision logic
+    if last_close > sma and flow_imbalance > 0:
+        action = "buy"
+        reason = f"Price ({last_close:.2f}) is above SMA ({sma:.2f}) and flow is bullish ({flow_imbalance:.2f})."
+    else:
+        action = "flat"
+        reason = f"Price ({last_close:.2f}) is not decisively above SMA ({sma:.2f}) or flow is not bullish ({flow_imbalance:.2f})."
+
+    return {
+        "action": action,
+        "size": 1,
+        "reason": reason,
+        "signal_payload": {
+            "sma": sma,
+            "last_close": last_close,
+            "flow_imbalance": flow_imbalance,
+        },
+    }

@@ -1,25 +1,33 @@
+
+
 ## Strategy Engine – Operations
 
-This section details how to run and configure the Strategy Engine.
+### Local Execution
 
-### Running Locally
+To run the strategy engine locally for testing and debugging, use the following commands from the root of the repository:
 
-To run the Strategy Engine locally:
+**Dry-Run Mode (no trades executed):**
 
-1.  **Set Environment Variables**: `export DATABASE_URL="..."`, `export STRATEGY_NAME="naive_flow_trend"`, etc.
-2.  **Run in Dry-Run Mode**: `python -m backend.strategy_engine.driver`
-3.  **Run with Live Paper Trading**: `python -m backend.strategy_engine.driver --execute`
+```bash
+export DATABASE_URL='your-supabase-database-url'
+python3 -m backend.strategy_engine.driver
+```
 
-### Running in a Container (Cloud Run Job)
+**Execute Trades (places paper trades):**
 
-Refer to the helper scripts:
--   `Dockerfile.strategy_engine`
--   `cloudbuild_strategy_engine.yaml`
--   `scripts/setup_cloud_run_strategy_engine.sh`
+```bash
+export DATABASE_URL='your-supabase-database-url'
+python3 -m backend.strategy_engine.driver --execute
+```
+
+### Cloud Run Execution
+
+The strategy engine is designed to be deployed as a containerized service on Google Cloud Run. The deployment process is automated using Cloud Build and the deployment script.
 
 ### Pre-Market Checklist
 
--   **Confirm Risk Limits**: `psql "$DATABASE_URL" -c "SELECT * FROM public.strategy_limits;"`
--   **Confirm Active Strategy**: `psql "$DATABASE_URL" -c "SELECT * FROM public.strategy_definitions WHERE is_active = true;"`
--   **Check Last Run**: `psql "$DATABASE_URL" -c "SELECT * FROM public.strategy_state ORDER BY trading_date DESC, updated_at DESC LIMIT 1;"`
--   **Check for Runaway Trades**: `psql "$DATABASE_URL" -c "SELECT * FROM public.strategy_state WHERE trading_date = CURRENT_DATE;"`
+Before the market opens, perform the following checks to ensure the strategy engine is ready for the trading day:
+
+- **Verify Strategy Definitions and Limits:** Connect to the Supabase database and verify that the `strategy_definitions` and `strategy_limits` tables contain the correct entries for the active strategies.
+- **Verify Strategy State:** Check the `strategy_state` table for the current trading day. There should be a row for each active strategy with `trades_placed` and `notional_traded` set to 0.
+- **Verify No Runaway Trades:** Check the `strategy_logs` table for any unusual activity from the previous trading day.

@@ -1,16 +1,16 @@
-.venv/
 __pycache__/
 *.pyc
-logs/
-*.log
+*.pyo
+*.pyd
+.Python
+env/
+venv/
 .env
-.env.*
-node_modules/
-dist/
-build/
+.vscode/
+npm-debug.log
 .DS_Store
-.genkit/
-\ndb_url.txt\nlogs/
-\n# Frontend\nfrontend/agenttrader-ui/node_modules\nfrontend/agenttrader-ui/.next
-\n# Strategy\nbackend/strategy/__pycache__
-\n# Streams Bridge\nbackend/streams_bridge/__pycache__
+db_check.py
+run_agenttrader_phase4_strategy_engine.sh
+frontend/agenttrader-ui/package-lock.json
+frontend/agenttrader-ui/.next/
+frontend/agenttrader-ui/out/
