@@ -1,3 +1,5 @@
+
+
 ### Strategy Engine – Operations
 
 **Local Execution**
@@ -14,4 +16,5 @@
 
 - Confirm limits in `public.strategy_limits`.
 - Confirm `strategy_state` is ready for the current day.
-- Check Cloud Run and Scheduler health.
+- Confirm Cloud Run Job `agenttrader-strategy-engine` is deployed and healthy.
+- Confirm Cloud Scheduler job `agenttrader-strategy-engine-scheduler` is created and enabled.

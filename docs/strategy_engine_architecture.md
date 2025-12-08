@@ -1,5 +1,3 @@
-
-
 ## Phase 5 – Deployment & Limits
 
 ### Strategy Limits Configuration
@@ -17,8 +15,8 @@ The `naive_flow_trend` strategy is configured with the following default limits,
 
 The Strategy Engine is deployed as a Google Cloud Run Job, triggered by a Cloud Scheduler job.
 
-- **Cloud Run Job:** The job is defined in `cloudbuild_strategy_engine.yaml` and deployed using the script in `scripts/setup_cloud_run_strategy_engine.sh`.
-- **Cloud Scheduler:** The scheduler is configured to run the job every 5 minutes during market hours. The configuration is in `scripts/setup_cloud_run_strategy_engine.sh`.
+- **Cloud Run Job:** The job is defined in `cloudbuild_strategy_engine.yaml` and deployed using the script in `scripts/setup_cloud_run_strategy_engine.sh`. The deployment was successful after granting the necessary IAM roles (`roles/secretmanager.secretAccessor`, `roles/run.admin`, and `roles/run.invoker`) to the `my-run-sa` service account.
+- **Cloud Scheduler:** The scheduler is configured to run the job every 5 minutes during market hours. The configuration is in `scripts/setup_cloud_run_strategy_engine.sh`, and the job was successfully created.
 
 ### Local vs. Cloud Execution
 
