@@ -6,3 +6,4 @@ httpx
 requests
 tenacity
 \nasyncpg
+\nwebsockets

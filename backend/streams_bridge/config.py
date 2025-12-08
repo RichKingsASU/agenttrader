@@ -7,6 +7,7 @@ class Config:
     price_stream_url: str | None
     options_flow_url: str | None
     news_stream_url: str | None
+    news_stream_api_key: str | None
     account_updates_url: str | None
 
 def load_config() -> Config:
@@ -15,5 +16,6 @@ def load_config() -> Config:
         price_stream_url=os.environ.get("PRICE_STREAM_URL"),
         options_flow_url=os.environ.get("OPTIONS_FLOW_URL"),
         news_stream_url=os.environ.get("NEWS_STREAM_URL"),
+        news_stream_api_key=os.environ.get("NEWS_STREAM_API_KEY"),
         account_updates_url=os.environ.get("ACCOUNT_UPDATES_URL"),
     )
