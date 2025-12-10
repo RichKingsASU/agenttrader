@@ -1,8 +1,9 @@
-[project]
-ref = "nugswladoficdyvygstg"
-api_url = "https://nugswladoficdyvygstg.supabase.co"
-studio_url = "https://studio.supabase.com/project/nugswladoficdyvygstg"
-db_url = "postgresql://postgres:YIJDZncUejzRiAArL@db.nugswladoficdyvygstg.supabase.co:5432/postgres"
+# [project]
+# ref = "nugswladoficdyvygstg"
+# api_url = "https://nugswladoficdyvygstg.supabase.co"
+# studio_url = "https://studio.supabase.com/project/nugswladoficdyvygstg"
+# db_url = "postgresql://postgres:YIJDZncUejzRiAArL@db.nugswladoficdyvygstg.supabase.co:5432/postgres"
 
-[db]
-schema = "public"
+# [db]
+# schema = "public"
+

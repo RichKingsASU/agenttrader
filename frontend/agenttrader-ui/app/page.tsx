@@ -1,5 +1,6 @@
 import MarketDataWidget from './components/MarketDataWidget';
 import PaperTradesWidget from './components/PaperTradesWidget';
+import LiveQuotesWidget from './components/LiveQuotesWidget';
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
             <li>Alpaca paper: authenticated</li>
           </ul>
         </div>
+        <LiveQuotesWidget />
         <MarketDataWidget />
         <PaperTradesWidget />
       </div>
