@@ -6,6 +6,8 @@ __pycache__/
 env/
 venv/
 .env
+.env.*
+logs/
 .vscode/
 npm-debug.log
 .DS_Store

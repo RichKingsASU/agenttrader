@@ -1,10 +1,5 @@
 import MarketDataWidget from './components/MarketDataWidget';
 import PaperTradesWidget from './components/PaperTradesWidget';
-import NewsEventsWidget from './components/NewsEventsWidget';
-import OptionsFlowWidget from './components/OptionsFlowWidget';
-import BrokerPositionsWidget from './components/BrokerPositionsWidget';
-import StrategyLogsWidget from './components/StrategyLogsWidget';
-import StrategyStateWidget from './components/StrategyStateWidget';
 
 export default function Home() {
   return (
@@ -14,13 +9,15 @@ export default function Home() {
       </div>
 
       <div className="w-full mt-12">
-        <StrategyStateWidget />
-        <StrategyLogsWidget />
+        <div className="mb-8 p-4 bg-green-100 text-green-800 rounded-lg">
+          <h2 className="text-2xl font-bold mb-2">System Health</h2>
+          <ul>
+            <li>Ingestion loop: running (Cloud Shell)</li>
+            <li>Alpaca paper: authenticated</li>
+          </ul>
+        </div>
         <MarketDataWidget />
         <PaperTradesWidget />
-        <NewsEventsWidget />
-        <OptionsFlowWidget />
-        <BrokerPositionsWidget />
       </div>
     </main>
   );

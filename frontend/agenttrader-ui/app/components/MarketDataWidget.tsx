@@ -26,7 +26,7 @@ export default function MarketDataWidget() {
           .from('market_data_1m')
           .select('*')
           .order('ts', { ascending: false })
-          .limit(60);
+          .limit(200);
 
         if (error) {
           throw error;
