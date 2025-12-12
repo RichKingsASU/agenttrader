@@ -11,9 +11,9 @@ except KeyError:
     print("Error: DATABASE_URL environment variable not set.")
     sys.exit(1)
 
-def get_last_n_bars(symbol: str, n: int):
+def get_last_n_bars(symbol: str, n: int, session: str = 'REGULAR'):
     """Fetches the last N bars for a symbol from the database."""
-    print(f"Fetching last {n} bars for {symbol}...")
+    print(f"Fetching last {n} bars for {symbol} in session {session}...")
     try:
         with psycopg2.connect(DB_URL) as conn:
             with conn.cursor() as cur:
@@ -21,11 +21,11 @@ def get_last_n_bars(symbol: str, n: int):
                     """
                     SELECT ts, open, high, low, close, volume
                     FROM public.market_data_1m
-                    WHERE symbol = %s
+                    WHERE symbol = %s AND session = %s
                     ORDER BY ts DESC
                     LIMIT %s
                     """,
-                    (symbol, n)
+                    (symbol, session, n)
                 )
                 return cur.fetchall()
     except psycopg2.Error as e:

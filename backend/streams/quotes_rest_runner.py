@@ -1,9 +1,10 @@
 import os, time, logging
-from datetime import datetime, timezone
+from datetime import datetime, time as dt_time
 from typing import Optional, Dict, Any
 
 import requests
 import psycopg2
+import pytz
 from psycopg2.extras import execute_values
 from tenacity import retry, wait_exponential, stop_after_attempt
 
@@ -25,6 +26,21 @@ if ALPACA_KEY and ALPACA_SEC:
         "APCA-API-SECRET-KEY": ALPACA_SEC,
     })
 # --- End Standard Header ---
+
+def get_market_session(ts: datetime) -> str:
+    """Determines the market session for a given timestamp."""
+    tz = pytz.timezone("America/New_York")
+    ts_et = ts.astimezone(tz)
+    t = ts_et.time()
+
+    if dt_time(4, 0) <= t < dt_time(9, 30):
+        return "PRE"
+    elif dt_time(9, 30) <= t < dt_time(16, 0):
+        return "REGULAR"
+    elif dt_time(16, 0) <= t < dt_time(20, 0):
+        return "AFTER"
+    else:
+        return "CLOSED"
 
 @retry(wait=wait_exponential(multiplier=1, min=2, max=10), stop=stop_after_attempt(5))
 def fetch_latest_bar(sym: str) -> Optional[Dict[str, Any]]:
@@ -51,7 +67,8 @@ def upsert_bar(conn, sym, bar):
         return 0
     try:
         ts = datetime.fromisoformat(bar["t"].replace("Z", "+00:00"))
-        row = (sym, ts, bar["o"], bar["h"], bar["l"], bar["c"], bar["v"])
+        session = get_market_session(ts)
+        row = (sym, ts, bar["o"], bar["h"], bar["l"], bar["c"], bar["v"], session)
     except (TypeError, ValueError) as e:
         logger.warning(f"Skipping malformed bar for {sym} at ts {bar.get('t')}: {e}")
         return 0
@@ -59,11 +76,11 @@ def upsert_bar(conn, sym, bar):
     try:
         with conn.cursor() as cur:
             execute_values(cur, """
-                INSERT INTO public.market_data_1m (symbol, ts, open, high, low, close, volume)
+                INSERT INTO public.market_data_1m (symbol, ts, open, high, low, close, volume, session)
                 VALUES %s
                 ON CONFLICT (symbol, ts) DO UPDATE
                 SET open=EXCLUDED.open, high=EXCLUDED.high, low=EXCLUDED.low,
-                    close=EXCLUDED.close, volume=EXCLUDED.volume;
+                    close=EXCLUDED.close, volume=EXCLUDED.volume, session=EXCLUDED.session;
             """, [row])
         conn.commit()
         return 1

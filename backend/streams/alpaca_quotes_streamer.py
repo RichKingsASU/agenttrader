@@ -2,6 +2,8 @@ import os
 import asyncio
 import logging
 import psycopg2
+import pytz
+from datetime import datetime, time as dt_time
 from alpaca.data.live.stock import StockDataStream
 from alpaca.data.enums import DataFeed
 
@@ -17,27 +19,44 @@ except KeyError as e:
     logging.error(f"FATAL: Missing required environment variable: {e}")
     exit(1)
 
+def get_market_session(ts: datetime) -> str:
+    """Determines the market session for a given timestamp."""
+    tz = pytz.timezone("America/New_Yordk")
+    ts_et = ts.astimezone(tz)
+    t = ts_et.time()
+
+    if dt_time(4, 0) <= t < dt_time(9, 30):
+        return "PRE"
+    elif dt_time(9, 30) <= t < dt_time(16, 0):
+        return "REGULAR"
+    elif dt_time(16, 0) <= t < dt_time(20, 0):
+        return "AFTER"
+    else:
+        return "CLOSED"
+
 async def quote_data_handler(data):
     """Handler for incoming quote data."""
     logging.info(f"Received quote for {data.symbol}: Bid={data.bid_price}, Ask={data.ask_price}")
     
     try:
+        session = get_market_session(datetime.now(pytz.utc))
         with psycopg2.connect(DB_URL) as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """
                     INSERT INTO public.live_quotes (
-                        symbol, bid_price, bid_size, ask_price, ask_size, last_update_ts
+                        symbol, bid_price, bid_size, ask_price, ask_size, last_update_ts, session
                     )
-                    VALUES (%s, %s, %s, %s, %s, NOW())
+                    VALUES (%s, %s, %s, %s, %s, NOW(), %s)
                     ON CONFLICT (symbol) DO UPDATE SET
                         bid_price = EXCLUDED.bid_price,
                         bid_size = EXCLUDED.bid_size,
                         ask_price = EXCLUDED.ask_price,
                         ask_size = EXCLUDED.ask_size,
-                        last_update_ts = NOW();
+                        last_update_ts = NOW(),
+                        session = EXCLUDED.session;
                     """,
-                    (data.symbol, data.bid_price, data.bid_size, data.ask_price, data.ask_size)
+                    (data.symbol, data.bid_price, data.bid_size, data.ask_price, data.ask_size, session)
                 )
     except psycopg2.Error as e:
         logging.error(f"Database error while handling quote for {data.symbol}: {e}")

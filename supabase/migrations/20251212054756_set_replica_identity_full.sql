@@ -1,0 +1,1 @@
+ALTER TABLE public.live_quotes REPLICA IDENTITY FULL;

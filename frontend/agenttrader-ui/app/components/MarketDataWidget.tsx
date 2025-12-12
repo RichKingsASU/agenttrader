@@ -11,7 +11,22 @@ interface MarketData {
   low: number;
   close: number;
   volume: number;
+  session: string;
 }
+
+const SessionIndicator = ({ session }: { session: string }) => {
+  const bgColor =
+    session === 'REGULAR'
+      ? 'bg-green-500'
+      : session === 'PRE'
+      ? 'bg-yellow-500'
+      : session === 'AFTER'
+      ? 'bg-purple-500'
+      : 'bg-gray-500';
+
+  return <span className={`inline-block w-3 h-3 rounded-full ${bgColor}`} title={session}></span>;
+};
+
 
 export default function MarketDataWidget() {
   const [data, setData] = useState<MarketData[]>([]);
@@ -57,6 +72,7 @@ export default function MarketDataWidget() {
             <th className="py-2 px-4 border-b">Low</th>
             <th className="py-2 px-4 border-b">Close</th>
             <th className="py-2 px-4 border-b">Volume</th>
+            <th className="py-2 px-4 border-b">Session</th>
           </tr>
         </thead>
         <tbody>
@@ -69,6 +85,12 @@ export default function MarketDataWidget() {
               <td className="py-2 px-4 border-b">{row.low}</td>
               <td className="py-2 px-4 border-b">{row.close}</td>
               <td className="py-2 px-4 border-b">{row.volume}</td>
+              <td className="py-2 px-4 border-b">
+                <div className="flex items-center">
+                  <SessionIndicator session={row.session} />
+                  <span className="ml-2">{row.session}</span>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
